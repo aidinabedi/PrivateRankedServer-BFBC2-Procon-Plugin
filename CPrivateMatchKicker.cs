@@ -10,16 +10,13 @@ namespace PRoConEvents
 	{
 		private static readonly string className = typeof(CPrivateMatchKicker).Name;
 
-		private readonly HashSet<string> m_reservedPlayers;
+		private readonly List<string> m_reservedPlayers;
 
 		private bool m_isPluginEnabled;
 		
-		private int m_checkInterval = 0;
-
-		public CPrivateMatchKicker()
-		{
-			m_reservedPlayers = new HashSet<string>();
-		}
+		private enumBoolYesNo m_ignoreCase = enumBoolYesNo.No;
+		
+		private int m_checkInterval;
 
 		public string GetPluginName()
 		{
@@ -28,7 +25,7 @@ namespace PRoConEvents
 
 		public string GetPluginVersion()
 		{
-			return "1.1.0.0";
+			return "1.3.0.0";
 		}
 
 		public string GetPluginAuthor()
@@ -56,6 +53,7 @@ namespace PRoConEvents
 		{
 			var retval = new List<CPluginVariable>();
 
+			retval.Add(new CPluginVariable("Ignore Case", typeof(enumBoolYesNo), m_ignoreCase));
 			retval.Add(new CPluginVariable("Check Interval", typeof(int), m_checkInterval));
 
 			return retval;
@@ -69,10 +67,9 @@ namespace PRoConEvents
 		public void OnPluginEnable()
 		{
 			m_isPluginEnabled = true;
-			m_reservedPlayers.Clear();
+			m_reservedPlayers = null;
 
 			ExecuteCommand("procon.protected.send", "reservedSlots.list");
-			ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
 
 			ExecuteCommand("procon.protected.pluginconsole.write", "^b" + GetPluginName() + " ^2Enabled!" );
 
@@ -82,7 +79,7 @@ namespace PRoConEvents
 		public void OnPluginDisable()
 		{
 			m_isPluginEnabled = false;
-			m_reservedPlayers.Clear();
+			m_reservedPlayers = null;
 
 			ExecuteCommand("procon.protected.tasks.remove", className);
 
@@ -96,13 +93,17 @@ namespace PRoConEvents
 				int.TryParse(value, out m_checkInterval);
 				_UpdateCheckInterval();
 			}
+			else if (variable == "Ignore Case" && Enum.IsDefined(typeof(enumBoolYesNo), value))
+			{
+				m_ignoreCase = (enumBoolYesNo)Enum.Parse(typeof(enumBoolYesNo), value);
+			}
 		}
 
 		private void _UpdateCheckInterval() 
 		{
 			ExecuteCommand("procon.protected.tasks.remove", className);
 
-			if (m_isPluginEnabled && m_checkInterval != 0)
+			if (m_isPluginEnabled && m_checkInterval > 0)
 			{
 				ExecuteCommand("procon.protected.tasks.add", className, "0", m_checkInterval.ToString(), "-1", "procon.protected.send", "admin.listPlayers", "all");
 			}
@@ -112,7 +113,7 @@ namespace PRoConEvents
 		{
 			try
 			{
-				if (m_reservedPlayers.Count != 0 && !m_reservedPlayers.Contains(soldierName))
+				if (!_IsPlayerReserved(soldierName))
 				{
 					_KickPlayer(soldierName);
 				}
@@ -127,6 +128,11 @@ namespace PRoConEvents
 		{
 			try
 			{
+				if (m_reservedPlayers == null)
+				{
+					m_reservedPlayers = new List<string>(soldierNames);
+				}
+
 				m_reservedPlayers.Add(soldierName);
 			}
 			catch (Exception e)
@@ -139,7 +145,12 @@ namespace PRoConEvents
 		{
 			try
 			{
-				m_reservedPlayers.Remove(soldierName);
+				if (m_reservedPlayers != null)
+				{
+					m_reservedPlayers.Remove(soldierName);
+
+					_CheckAllPlayers();
+				}
 			}
 			catch (Exception e)
 			{
@@ -151,12 +162,9 @@ namespace PRoConEvents
 		{
 			try
 			{
-				m_reservedPlayers.Clear();
+				m_reservedPlayers = (soldierNames.Count > 0) ? new List<string>(soldierNames) : null;
 
-				foreach (var soldierName in soldierNames)
-				{
-					m_reservedPlayers.Add(soldierName);
-				}
+				_CheckAllPlayers();
 			}
 			catch (Exception e)
 			{
@@ -168,7 +176,7 @@ namespace PRoConEvents
 		{
 			try
 			{
-				m_reservedPlayers.Clear();
+				m_reservedPlayers = null;
 			}
 			catch (Exception e)
 			{
@@ -180,16 +188,13 @@ namespace PRoConEvents
 		{
 			try
 			{
-				if (m_reservedPlayers.Count != 0)
+				foreach (var player in players)
 				{
-					foreach (var player in players)
-					{
-						var soldierName = player.SoldierName;
+					var soldierName = player.SoldierName;
 
-						if (!m_reservedPlayers.Contains(soldierName))
-						{
-							_KickPlayer(soldierName);
-						}
+					if (!_IsPlayerReserved(soldierName))
+					{
+						_KickPlayer(soldierName);
 					}
 				}
 			}
@@ -197,6 +202,22 @@ namespace PRoConEvents
 			{
 				ExecuteCommand("procon.protected.pluginconsole.write", className + ".OnListPlayers Exception: " + e.Message);
 			}
+		}
+
+		private void _CheckAllPlayers()
+		{
+			ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+		}
+
+		private bool _IsPlayerReserved(string soldierName)
+		{
+			if (m_reservedPlayers != null)
+			{
+				var comparer = (m_ignoreCase == enumBoolYesNo.Yes) ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+				return m_reservedPlayers.Contains(soldierName, comparer);
+			}
+
+			return true; // If the list is not loaded we assume everyone is ok
 		}
 
 		private void _KickPlayer(string soldierName)
