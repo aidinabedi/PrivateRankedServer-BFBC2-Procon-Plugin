@@ -56,7 +56,7 @@ namespace PRoConEvents
 		{
 			var retval = new List<CPluginVariable>();
 
-			// TODO
+			retval.Add(new CPluginVariable("Check Interval", typeof(int), m_checkInterval));
 
 			return retval;
 		}
@@ -75,6 +75,8 @@ namespace PRoConEvents
 			ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
 
 			ExecuteCommand("procon.protected.pluginconsole.write", "^b" + GetPluginName() + " ^2Enabled!" );
+
+			_UpdateCheckInterval();
 		}
 
 		public void OnPluginDisable()
@@ -82,12 +84,28 @@ namespace PRoConEvents
 			m_isPluginEnabled = false;
 			m_reservedPlayers.Clear();
 
+			ExecuteCommand("procon.protected.tasks.remove", className);
+
 			ExecuteCommand("procon.protected.pluginconsole.write", "^b" + GetPluginName() + " ^1Disabled =(" );
 		}
 
 		public void SetPluginVariable(string variable, string value)
 		{
-			// TODO
+			if (variable == "Check Interval")
+			{
+				int.TryParse(value, out m_checkInterval);
+				_UpdateCheckInterval();
+			}
+		}
+
+		private void _UpdateCheckInterval() 
+		{
+			ExecuteCommand("procon.protected.tasks.remove", className);
+
+			if (m_isPluginEnabled && m_checkInterval != 0)
+			{
+				ExecuteCommand("procon.protected.tasks.add", className, "0", m_checkInterval.ToString(), "-1", "procon.protected.send", "admin.listPlayers", "all");
+			}
 		}
 
 		public override void OnPlayerJoin(string soldierName)
