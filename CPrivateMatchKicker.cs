@@ -6,22 +6,24 @@ using PRoCon.Core.Plugin;
 
 namespace PRoConEvents
 {
-	public class CNonReservedPlayerKicker : PRoConPluginAPI, IPRoConPluginInterface
+	public class CPrivateMatchKicker : PRoConPluginAPI, IPRoConPluginInterface
 	{
-		private static readonly string className = typeof(CNonReservedPlayerKicker).Name;
+		private static readonly string className = typeof(CPrivateMatchKicker).Name;
 
 		private readonly HashSet<string> m_reservedPlayers;
 
 		private bool m_isPluginEnabled;
+		
+		private int m_checkInterval = 0;
 
-		public CNonReservedPlayerKicker()
+		public CPrivateMatchKicker()
 		{
 			m_reservedPlayers = new HashSet<string>();
 		}
 
 		public string GetPluginName()
 		{
-			return "Non-Reserved Player Kicker";
+			return "Private Match Kicker";
 		}
 
 		public string GetPluginVersion()
@@ -41,7 +43,7 @@ namespace PRoConEvents
 
 		public string GetPluginDescription()
 		{
-			return @"Kicks a player if they are not included in the reserved slots list.";
+			return @"Kicks a player if they are not included in the reserved slots list (see Lists tab).";
 		}
 
 		public List<CPluginVariable> GetDisplayPluginVariables()
