@@ -28,7 +28,7 @@ namespace PRoConEvents
 
 		public string GetPluginVersion()
 		{
-			return "1.0.0.0";
+			return "1.1.0.0";
 		}
 
 		public string GetPluginAuthor()
@@ -63,21 +63,26 @@ namespace PRoConEvents
 
 		public void OnPluginLoaded(string hostName, string port, string proconVersion)
 		{
-			RegisterEvents(GetType().Name, "OnPlayerJoin", "OnReservedSlotsPlayerAdded", "OnReservedSlotsPlayerRemoved", "OnReservedSlotsList", "OnReservedSlotsCleared");
+			RegisterEvents(className, "OnPlayerJoin", "OnListPlayers", "OnReservedSlotsPlayerAdded", "OnReservedSlotsPlayerRemoved", "OnReservedSlotsList", "OnReservedSlotsCleared");
 		}
 
 		public void OnPluginEnable()
 		{
 			m_isPluginEnabled = true;
+			m_reservedPlayers.Clear();
 
 			ExecuteCommand("procon.protected.send", "reservedSlots.list");
+			ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+
+			ExecuteCommand("procon.protected.pluginconsole.write", "^b" + GetPluginName() + " ^2Enabled!" );
 		}
 
 		public void OnPluginDisable()
 		{
 			m_isPluginEnabled = false;
-
 			m_reservedPlayers.Clear();
+
+			ExecuteCommand("procon.protected.pluginconsole.write", "^b" + GetPluginName() + " ^1Disabled =(" );
 		}
 
 		public void SetPluginVariable(string variable, string value)
@@ -89,10 +94,9 @@ namespace PRoConEvents
 		{
 			try
 			{
-				if (!m_reservedPlayers.Contains(soldierName))
+				if (m_reservedPlayers.Count != 0 && !m_reservedPlayers.Contains(soldierName))
 				{
-					ExecuteCommand("procon.protected.send", "admin.kickPlayer", soldierName, "Sorry for the kick, dude! This is a private match!");
-					ExecuteCommand("procon.protected.send", "admin.say", "Kicked '" + soldierName + "' because this is a private match!");
+					_KickPlayer(soldierName);
 				}
 			}
 			catch (Exception e)
@@ -152,6 +156,35 @@ namespace PRoConEvents
 			{
 				ExecuteCommand("procon.protected.pluginconsole.write", className + ".OnReservedSlotsCleared Exception: " + e.Message);
 			}
+		}
+
+		public override void OnListPlayers(List<CPlayerInfo> players, CPlayerSubset subset)
+		{
+			try
+			{
+				if (m_reservedPlayers.Count != 0)
+				{
+					foreach (var player in players)
+					{
+						var soldierName = player.SoldierName;
+
+						if (!m_reservedPlayers.Contains(soldierName))
+						{
+							_KickPlayer(soldierName);
+						}
+					}
+				}
+			}
+			catch (Exception e)
+			{
+				ExecuteCommand("procon.protected.pluginconsole.write", className + ".OnListPlayers Exception: " + e.Message);
+			}
+		}
+
+		private void _KickPlayer(string soldierName)
+		{
+			ExecuteCommand("procon.protected.send", "admin.kickPlayer", soldierName, "Sorry for the kick, dude! This is a private match!");
+			ExecuteCommand("procon.protected.send", "admin.say", "Kicked '" + soldierName + "' because this is a private match!");
 		}
 	}
 }
