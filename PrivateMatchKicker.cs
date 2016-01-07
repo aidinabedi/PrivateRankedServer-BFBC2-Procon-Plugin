@@ -102,7 +102,7 @@ namespace PRoConEvents
 		{
 			if (reservedPlayers == null)
 			{
-				reservedPlayers = new HashSet<string>(soldierNames, _GetStringComparer());
+				reservedPlayers = new HashSet<string>(_GetStringComparer());
 			}
 
 			reservedPlayers.Add(soldierName);
