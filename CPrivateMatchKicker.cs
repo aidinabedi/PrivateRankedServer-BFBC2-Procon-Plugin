@@ -14,7 +14,6 @@ namespace PRoConEvents
 		private bool isPluginEnabled = false;
 		
 		private enumBoolYesNo ignoreCase = enumBoolYesNo.No;
-		private int checkInterval;
 
 		public string GetPluginName()
 		{
@@ -23,7 +22,7 @@ namespace PRoConEvents
 
 		public string GetPluginVersion()
 		{
-			return "1.3.0.0";
+			return "1.4.0.0";
 		}
 
 		public string GetPluginAuthor()
@@ -68,8 +67,6 @@ namespace PRoConEvents
 			ExecuteCommand("procon.protected.send", "reservedSlots.list");
 
 			ExecuteCommand("procon.protected.pluginconsole.write", "^b" + GetPluginName() + " ^2Enabled!" );
-
-			_UpdateCheckInterval();
 		}
 
 		public void OnPluginDisable()
@@ -77,32 +74,15 @@ namespace PRoConEvents
 			isPluginEnabled = false;
 			reservedPlayers = null;
 
-			ExecuteCommand("procon.protected.tasks.remove", className);
-
 			ExecuteCommand("procon.protected.pluginconsole.write", "^b" + GetPluginName() + " ^1Disabled =(" );
 		}
 
 		public void SetPluginVariable(string variable, string value)
 		{
-			if (variable == "Check Interval")
-			{
-				int.TryParse(value, out checkInterval);
-				_UpdateCheckInterval();
-			}
-			else if (variable == "Ignore Case" && Enum.IsDefined(typeof(enumBoolYesNo), value))
+			if (variable == "Ignore Case" && Enum.IsDefined(typeof(enumBoolYesNo), value))
 			{
 				ignoreCase = (enumBoolYesNo)Enum.Parse(typeof(enumBoolYesNo), value);
 				_UpdateIgnoreCase();
-			}
-		}
-
-		private void _UpdateCheckInterval() 
-		{
-			ExecuteCommand("procon.protected.tasks.remove", className);
-
-			if (isPluginEnabled && checkInterval > 0)
-			{
-				ExecuteCommand("procon.protected.tasks.add", className, "0", checkInterval.ToString(), "-1", "procon.protected.send", "admin.listPlayers", "all");
 			}
 		}
 
