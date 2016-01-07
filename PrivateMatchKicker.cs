@@ -9,7 +9,6 @@ namespace PRoConEvents
 	public class PrivateMatchKicker : PRoConPluginAPI, IPRoConPluginInterface
 	{
 		private HashSet<string> reservedPlayers = null;
-		private bool isPluginEnabled = false;
 		
 		private bool ignoreCase = false;
 
@@ -59,7 +58,6 @@ namespace PRoConEvents
 
 		public void OnPluginEnable()
 		{
-			isPluginEnabled = true;
 			reservedPlayers = null;
 
 			ExecuteCommand("procon.protected.send", "reservedSlots.list");
@@ -69,7 +67,6 @@ namespace PRoConEvents
 
 		public void OnPluginDisable()
 		{
-			isPluginEnabled = false;
 			reservedPlayers = null;
 
 			ExecuteCommand("procon.protected.pluginconsole.write", "^b" + GetPluginName() + " ^1Disabled =(" );
