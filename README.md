@@ -5,6 +5,6 @@ This is a procon plugin (for games like Battlefield: Bad Company 2, Battlefield 
 ## Installation
 
 1. Make sure you have the latest Procon 1.5.x installed.
-2. Copy the *.cs file in this repository into Procon's "Plugins" folder.
+2. Download the *.cs file from this repository into Procon's "Plugins" folder.
 3. Start Procon and look for the new plugin in the plugins tab.
 4. Enable it (and change the plugin settings if necessery)!
