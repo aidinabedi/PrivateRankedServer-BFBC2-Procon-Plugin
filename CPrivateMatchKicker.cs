@@ -8,12 +8,12 @@ namespace PRoConEvents
 {
 	public class PrivateMatchKicker : PRoConPluginAPI, IPRoConPluginInterface
 	{
-		private static readonly string className = typeof(CPrivateMatchKicker).Name;
+		private static readonly string className = typeof(PrivateMatchKicker).Name;
 
 		private HashSet<string> reservedPlayers = null;
 		private bool isPluginEnabled = false;
 		
-		private enumBoolYesNo ignoreCase = enumBoolYesNo.No;
+		private bool ignoreCase = false;
 
 		public string GetPluginName()
 		{
@@ -22,7 +22,7 @@ namespace PRoConEvents
 
 		public string GetPluginVersion()
 		{
-			return "1.4.0.0";
+			return "1.5.0.0";
 		}
 
 		public string GetPluginAuthor()
@@ -49,8 +49,7 @@ namespace PRoConEvents
 		{
 			return new List<CPluginVariable>
 			{
-				new CPluginVariable("Ignore Case", typeof(enumBoolYesNo), ignoreCase),
-				new CPluginVariable("Check Interval", typeof(int), checkInterval),
+				new CPluginVariable("Case Insensitive Comparison", typeof(bool), ignoreCase),
 			};
 		}
 
@@ -79,10 +78,11 @@ namespace PRoConEvents
 
 		public void SetPluginVariable(string variable, string value)
 		{
-			if (variable == "Ignore Case" && Enum.IsDefined(typeof(enumBoolYesNo), value))
+			switch (variable)
 			{
-				ignoreCase = (enumBoolYesNo)Enum.Parse(typeof(enumBoolYesNo), value);
-				_UpdateIgnoreCase();
+				case "Case Insensitive Comparison":
+					if (bool.Parse(value, out ignoreCase)) _UpdateIgnoreCase();
+					break;
 			}
 		}
 
@@ -98,7 +98,7 @@ namespace PRoConEvents
 		{
 			try
 			{
-				if (!_IsPlayerReserved(soldierName))
+				if (reservedPlayers != null && !reservedPlayers.Contains(soldierName))
 				{
 					_KickPlayer(soldierName);
 				}
@@ -147,9 +147,16 @@ namespace PRoConEvents
 		{
 			try
 			{
-				reservedPlayers = (soldierNames.Count > 0) ? new HashSet<string>(soldierNames, _GetStringComparer()) : null;
+				if (soldierNames.Count > 0)
+				{
+					reservedPlayers = new HashSet<string>(soldierNames, _GetStringComparer());
 
-				_CheckAllPlayers();
+					_CheckAllPlayers();
+				}
+				else
+				{
+					reservedPlayers = null;
+				}
 			}
 			catch (Exception e)
 			{
@@ -173,11 +180,16 @@ namespace PRoConEvents
 		{
 			try
 			{
+				if (reservedPlayers == null)
+				{
+					return;
+				}
+				
 				foreach (var player in players)
 				{
 					var soldierName = player.SoldierName;
 
-					if (!_IsPlayerReserved(soldierName))
+					if (!reservedPlayers.Contains(soldierName))
 					{
 						_KickPlayer(soldierName);
 					}
@@ -194,19 +206,9 @@ namespace PRoConEvents
 			ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
 		}
 
-		private bool _IsPlayerReserved(string soldierName)
-		{
-			if (reservedPlayers != null)
-			{
-				return reservedPlayers.Contains(soldierName);
-			}
-
-			return true; // If the reserved list is not loaded we assume everyone is ok
-		}
-
 		private StringComparer _GetStringComparer()
 		{
-			return (ignoreCase == enumBoolYesNo.Yes) ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+			return ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 		}
 
 		private void _KickPlayer(string soldierName)
