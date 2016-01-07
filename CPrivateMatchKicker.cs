@@ -8,8 +8,6 @@ namespace PRoConEvents
 {
 	public class PrivateMatchKicker : PRoConPluginAPI, IPRoConPluginInterface
 	{
-		private static readonly string className = typeof(PrivateMatchKicker).Name;
-
 		private HashSet<string> reservedPlayers = null;
 		private bool isPluginEnabled = false;
 		
@@ -55,6 +53,7 @@ namespace PRoConEvents
 
 		public void OnPluginLoaded(string hostName, string port, string proconVersion)
 		{
+			var className = typeof(PrivateMatchKicker).Name;
 			RegisterEvents(className, "OnPlayerJoin", "OnListPlayers", "OnReservedSlotsPlayerAdded", "OnReservedSlotsPlayerRemoved", "OnReservedSlotsList", "OnReservedSlotsCleared");
 		}
 
@@ -96,108 +95,66 @@ namespace PRoConEvents
 
 		public override void OnPlayerJoin(string soldierName)
 		{
-			try
+			if (reservedPlayers != null && !reservedPlayers.Contains(soldierName))
 			{
-				if (reservedPlayers != null && !reservedPlayers.Contains(soldierName))
-				{
-					_KickPlayer(soldierName);
-				}
-			}
-			catch (Exception e)
-			{
-				ExecuteCommand("procon.protected.pluginconsole.write", className + ".OnPlayerJoin Exception: " + e.Message);
+				_KickPlayer(soldierName);
 			}
 		}
 
 		public override void OnReservedSlotsPlayerAdded(string soldierName)
 		{
-			try
+			if (reservedPlayers == null)
 			{
-				if (reservedPlayers == null)
-				{
-					reservedPlayers = new HashSet<string>(soldierNames, _GetStringComparer());
-				}
+				reservedPlayers = new HashSet<string>(soldierNames, _GetStringComparer());
+			}
 
-				reservedPlayers.Add(soldierName);
-			}
-			catch (Exception e)
-			{
-				ExecuteCommand("procon.protected.pluginconsole.write", className + ".OnReservedSlotsPlayerAdded Exception: " + e.Message);
-			}
+			reservedPlayers.Add(soldierName);
 		}
 
 		public override void OnReservedSlotsPlayerRemoved(string soldierName)
 		{
-			try
+			if (reservedPlayers != null)
 			{
-				if (reservedPlayers != null)
-				{
-					reservedPlayers.Remove(soldierName);
+				reservedPlayers.Remove(soldierName);
 
-					_CheckAllPlayers();
-				}
-			}
-			catch (Exception e)
-			{
-				ExecuteCommand("procon.protected.pluginconsole.write", className + ".OnReservedSlotsPlayerRemoved Exception: " + e.Message);
+				_CheckAllPlayers();
 			}
 		}
 
 		public override void OnReservedSlotsList(List<string> soldierNames)
 		{
-			try
+			if (soldierNames.Count > 0)
 			{
-				if (soldierNames.Count > 0)
-				{
-					reservedPlayers = new HashSet<string>(soldierNames, _GetStringComparer());
+				reservedPlayers = new HashSet<string>(soldierNames, _GetStringComparer());
 
-					_CheckAllPlayers();
-				}
-				else
-				{
-					reservedPlayers = null;
-				}
+				_CheckAllPlayers();
 			}
-			catch (Exception e)
+			else
 			{
-				ExecuteCommand("procon.protected.pluginconsole.write", className + ".OnReservedSlotsList Exception: " + e.Message);
+				reservedPlayers = null;
 			}
 		}
 
 		public override void OnReservedSlotsCleared()
 		{
-			try
-			{
-				reservedPlayers = null;
-			}
-			catch (Exception e)
-			{
-				ExecuteCommand("procon.protected.pluginconsole.write", className + ".OnReservedSlotsCleared Exception: " + e.Message);
-			}
+			reservedPlayers = null;
 		}
 
 		public override void OnListPlayers(List<CPlayerInfo> players, CPlayerSubset subset)
 		{
-			try
+			if (reservedPlayers == null)
 			{
-				if (reservedPlayers == null)
-				{
-					return;
-				}
-				
-				foreach (var player in players)
-				{
-					var soldierName = player.SoldierName;
-
-					if (!reservedPlayers.Contains(soldierName))
-					{
-						_KickPlayer(soldierName);
-					}
-				}
+				return;
 			}
-			catch (Exception e)
+			
+			foreach (var player in players)
 			{
-				ExecuteCommand("procon.protected.pluginconsole.write", className + ".OnListPlayers Exception: " + e.Message);
+				var soldierName = player.SoldierName;
+
+				if (!reservedPlayers.Contains(soldierName))
+				{
+					_KickPlayer(soldierName);
+				}
 			}
 		}
 
