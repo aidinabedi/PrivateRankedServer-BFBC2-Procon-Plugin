@@ -77,7 +77,7 @@ namespace PRoConEvents
 			switch (variable)
 			{
 				case "Case Insensitive Comparison":
-					if (bool.Parse(value, out ignoreCase)) _UpdateIgnoreCase();
+					if (bool.TryParse(value, out ignoreCase)) _UpdateIgnoreCase();
 					break;
 			}
 		}
